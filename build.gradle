@@ -1,0 +1,31 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'com.github.johnrengelman.shadow' version '2.0.1'
+}
+
+mainClassName = 'com.kantenkugel.cetustime.Main'
+
+group 'com.kantenkugel'
+version '1.0'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+    jcenter()
+}
+
+dependencies {
+    //JDA
+    compile 'net.dv8tion:JDA:3.3.1_305'
+
+    //Utils (would be included in JDA but this way its more obvious + safe)
+    compile 'org.json:json:20160810'
+    compile 'com.squareup.okhttp3:okhttp:3.8.1'
+
+    //Logback for slf4j impl
+    compile 'ch.qos.logback:logback-classic:1.2.3'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
