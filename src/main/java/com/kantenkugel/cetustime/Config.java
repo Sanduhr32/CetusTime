@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.file.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -15,7 +15,7 @@ public class Config {
     private static final Logger LOG = LoggerFactory.getLogger(Config.class);
 
     private static final Path CFG_PATH = Paths.get("config.json");
-    private static final Path CFG_TPL_PATH;
+    private static final URL CFG_TPL_PATH;
 
     private static JSONObject rawCfg;
     private static String botToken;
@@ -53,22 +53,16 @@ public class Config {
     }
 
     static {
-        Path tmp = null;
-        try {
-            tmp = Paths.get(Config.class.getClassLoader().getResource("configTemplate.json").toURI());
-        } catch(URISyntaxException e) {
-            LOG.error("Could not get configTemplate from resources", e);
-            System.exit(1);
-        }
-        CFG_TPL_PATH = tmp;
-
+        CFG_TPL_PATH = Config.class.getClassLoader().getResource("configTemplate.json");
+        if(CFG_TPL_PATH == null)
+            throw new RuntimeException("Could not get template config");
         init();
     }
 
     private static void init() {
         if(!Files.exists(CFG_PATH)) {
             try {
-                Files.copy(CFG_TPL_PATH, CFG_PATH, StandardCopyOption.REPLACE_EXISTING);
+                Files.copy(CFG_TPL_PATH.openStream(), CFG_PATH, StandardCopyOption.REPLACE_EXISTING);
             } catch(IOException e) {
                 LOG.error("Could not copy config template into root directory", e);
             }
