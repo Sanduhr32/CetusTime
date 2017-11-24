@@ -15,6 +15,7 @@ import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent;
 import net.dv8tion.jda.core.events.message.priv.PrivateMessageReceivedEvent;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.hooks.EventListener;
+import net.dv8tion.jda.core.utils.JDALogger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +41,12 @@ public class Main implements EventListener {
     private static JDA jda;
     private static Map<String, Long> channelMsgMap = new HashMap<>();
 
+    //Starting up with 30mib of memory should be sufficient (-Xmx30M)
     public static void main(String[] args) {
         try {
             new JDABuilder(AccountType.BOT).setToken(Config.getBotToken()).addEventListener(new Main()).buildAsync();
         } catch(LoginException | RateLimitedException e) {
-            e.printStackTrace();
+            LOG.error("Error starting up bot", e);
         }
     }
 
@@ -73,6 +75,11 @@ public class Main implements EventListener {
                 jda.getTextChannelById(key).editMessageById(value, embed).queue();
             }
         });
+        LOG.trace("Current memory stats (in kib): Total: {}, Free: {}, Usage: {}",
+                JDALogger.getLazyString(() -> Long.toString(Runtime.getRuntime().totalMemory()/1024)),
+                JDALogger.getLazyString(() -> Long.toString(Runtime.getRuntime().freeMemory()/1024)),
+                JDALogger.getLazyString(() -> Long.toString((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024))
+        );
     }
 
     @Override
@@ -101,7 +108,7 @@ public class Main implements EventListener {
                 Message msg = botMsg.get();
 
                 if(msg == null || prevMsgs.get() > 0) {
-                    LOG.trace("Scanned {} messages", prevMsgs.get());
+                    LOG.debug("Scanned {} messages", prevMsgs.get());
                     if(msg != null && prevMsgs.get() > 0) {
                         LOG.info("Deleting outdated msg in {}...", channelId);
                         msg.delete().queue();
@@ -151,7 +158,7 @@ public class Main implements EventListener {
             if(Config.isKeepOnBottom() && Config.getChannelIds().contains(channel.getId())) {
                 if(channelMsgMap.get(channel.getId()) == 0L)
                     return;
-                LOG.trace("Renewing message in tc {}", channel.getIdLong());
+                LOG.debug("Renewing message in tc {}", channel.getIdLong());
                 channelMsgMap.compute(channel.getId(), (key, value) -> {
                     if(value != 0L)
                         channel.deleteMessageById(value).queueAfter(1, TimeUnit.SECONDS);
