@@ -2,5 +2,5 @@
   "botToken": "",
   "adminIds": [],
   "textChannelIds": [],
-  "delNonBotMsgs": true
+  "keepOnBottom": true
 }

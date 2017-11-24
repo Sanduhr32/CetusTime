@@ -6,10 +6,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -23,7 +20,7 @@ public class Config {
     private static JSONObject rawCfg;
     private static String botToken;
     private static List<String> channelIds, adminIds;
-    private static boolean deleteOtherMessages;
+    private static boolean keepOnBottom;
 
     public static String getBotToken() {
         return botToken;
@@ -37,8 +34,22 @@ public class Config {
         return adminIds;
     }
 
-    public static boolean isDeleteOtherMessages() {
-        return deleteOtherMessages;
+    public static boolean isKeepOnBottom() {
+        return keepOnBottom;
+    }
+
+    public static void addChannel(String channelId) {
+        if(channelIds.contains(channelId))
+            return;
+        channelIds.add(channelId);
+        rawCfg.put("channelIds", channelIds);
+    }
+
+    public static void removeChannel(String channelId) {
+        if(!channelIds.contains(channelId))
+            return;
+        channelIds.remove(channelId);
+        rawCfg.put("channelIds", channelIds);
     }
 
     static {
@@ -71,10 +82,18 @@ public class Config {
                     .map(String::valueOf).collect(Collectors.toList());
             channelIds = StreamSupport.stream(rawCfg.getJSONArray("textChannelIds").spliterator(), false)
                     .map(String::valueOf).collect(Collectors.toList());
-            deleteOtherMessages = rawCfg.getBoolean("delNonBotMsgs");
+            keepOnBottom = rawCfg.getBoolean("keepOnBottom");
         } catch(Exception ex) {
             LOG.error("Could not read config from file", ex);
             System.exit(1);
+        }
+    }
+
+    public static void write() {
+        try {
+            Files.write(CFG_PATH, rawCfg.toString(4).getBytes(), StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch(IOException e) {
+            LOG.error("Could not write new config file", e);
         }
     }
 }

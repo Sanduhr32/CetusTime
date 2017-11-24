@@ -4,7 +4,10 @@ import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 
 import java.awt.*;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
 
 public class Utils {
@@ -18,10 +21,16 @@ public class Utils {
             return null;
 
         EB.setColor(currentCycle.isDay ? DAY_COLOR : NIGHT_COLOR);
+        EB.setFooter("Letztes API update", null);
         EB.setTimestamp(WarframeApi.getLastUpdate());
         EB.clearFields();
         EB.addField("Cetus Cyclus", currentCycle.isDay ? "Tag" : "Nacht", false);
-        EB.addField("Zeit bis " + (currentCycle.isDay ? "Nacht" : "Tag"), getDiffString(currentCycle.switchTime), false);
+        EB.addField("Zeit bis " + (currentCycle.isDay ? "Nacht" : "Tag"),
+                String.format("%s%n(%s)",
+                        getDiffString(currentCycle.switchTime),
+                        currentCycle.switchTime.withZoneSameInstant(ZoneId.systemDefault())
+                                .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
+                ), false);
         EB.addField(currentVoid.name, (currentVoid.active ? "geht in " : "kommt in ") + getDiffString(currentVoid.switchTime), false);
         EB.addField(String.format("%s Relay", currentVoid.name), currentVoid.location, false);
         return EB.build();

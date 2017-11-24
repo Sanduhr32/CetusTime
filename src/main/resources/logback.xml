@@ -37,6 +37,8 @@
         </encoder>
     </appender>
 
+    <logger name="com.kantenkugel.cetustime.Main" level="TRACE" />
+
     <root level="INFO">
         <appender-ref ref="STDOUT"/>
         <appender-ref ref="STDERR"/>
