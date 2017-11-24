@@ -32,7 +32,10 @@ public class Utils {
                                 .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
                 ), false);
         EB.addField(currentVoid.name, (currentVoid.active ? "geht in " : "kommt in ") + getDiffString(currentVoid.switchTime), false);
-        EB.addField(String.format("%s Relay", currentVoid.name), currentVoid.location, false);
+        if(currentVoid.active || ZonedDateTime.now().until(currentVoid.switchTime, ChronoUnit.DAYS) == 0) {
+            EB.addField(String.format("%s Relay", currentVoid.name), currentVoid.location, false);
+            //TODO: Add inventory once i know its json body from the api
+        }
         return EB.build();
     }
 
