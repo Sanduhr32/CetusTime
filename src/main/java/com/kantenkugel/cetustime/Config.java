@@ -42,14 +42,14 @@ public class Config {
         if(channelIds.contains(channelId))
             return;
         channelIds.add(channelId);
-        rawCfg.put("channelIds", channelIds);
+        rawCfg.put("textChannelIds", channelIds);
     }
 
     public static void removeChannel(String channelId) {
         if(!channelIds.contains(channelId))
             return;
         channelIds.remove(channelId);
-        rawCfg.put("channelIds", channelIds);
+        rawCfg.put("textChannelIds", channelIds);
     }
 
     static {
