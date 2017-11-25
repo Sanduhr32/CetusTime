@@ -4,12 +4,15 @@ import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
 import net.dv8tion.jda.core.entities.MessageEmbed;
+import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
 import net.dv8tion.jda.core.utils.JDALogger;
+import net.dv8tion.jda.core.utils.MiscUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
+import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -45,7 +48,9 @@ public class Main {
     static synchronized void setupExecutor() {
         if(setup)
             return;
-        EXECUTOR.scheduleAtFixedRate(Main::update, 0, 2, TimeUnit.SECONDS);
+        long updateIntervalMs = TimeUnit.MILLISECONDS.convert(Constants.UPDATE_INTERVAL, Constants.UPDATE_INTERVAL_UNIT);
+        long initialDelayMs = updateIntervalMs - (System.currentTimeMillis() % updateIntervalMs);
+        EXECUTOR.scheduleAtFixedRate(Main::update, initialDelayMs, updateIntervalMs, TimeUnit.MILLISECONDS);
         setup = true;
     }
 
@@ -68,10 +73,17 @@ public class Main {
         if(embed == null)
             return;
         channelMsgMap.forEach((key, value) -> {
-            if(value == 0L) {
-                channelMsgMap.put(key, JDA.getTextChannelById(key).sendMessage(embed).complete().getIdLong());
+            TextChannel tc = JDA.getTextChannelById(key);
+            if(value == 0L || (Constants.FORCED_RENEW_INTERVAL > 0 &&
+                    MiscUtil.getCreationTime(value).until(OffsetDateTime.now(), Constants.FORCED_RENEW_INTERVAL_UNIT)
+                            >= Constants.FORCED_RENEW_INTERVAL)) {
+                if(value != 0L) {
+                    tc.deleteMessageById(value).queue();
+                    LOG.debug("Forced renew in channel {}", tc);
+                }
+                channelMsgMap.put(key, tc.sendMessage(embed).complete().getIdLong());
             } else {
-                JDA.getTextChannelById(key).editMessageById(value, embed).queue();
+                tc.editMessageById(value, embed).queue();
             }
         });
         LOG.trace("Current memory stats (in kib): Total: {}, Free: {}, Usage: {}",

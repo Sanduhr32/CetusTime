@@ -17,7 +17,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -41,7 +40,7 @@ public class Listener extends ListenerAdapter {
             AtomicReference<Message> botMsg = new AtomicReference<>(null);
             AtomicInteger prevMsgs = new AtomicInteger(0);
             tc.getIterableHistory().cache(false).forEachRemaining(m -> {
-                if(m.getAuthor() == jda.getSelfUser()) {
+                if(m.getAuthor() == jda.getSelfUser() && m.getEmbeds().size() > 0) {
                     botMsg.set(m);
                     return false;
                 }
@@ -84,7 +83,7 @@ public class Listener extends ListenerAdapter {
     @Override
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent e) {
         if(Config.getAdminIds().contains(e.getAuthor().getId()) && e.getMessage().getContent().equals("shutdown")) {
-            LOG.info("Admin {} ({}) issued shutdown... ", e.getAuthor().getName(), e.getAuthor().getIdLong());
+            LOG.info("Admin {} issued shutdown... ", e.getAuthor());
             e.getJDA().shutdown();
         }
     }
@@ -100,16 +99,17 @@ public class Listener extends ListenerAdapter {
         if(e.getMessage().getRawContent().equals(e.getJDA().getSelfUser().getAsMention() + " track")) {
             String chanId = e.getChannel().getId();
             if(map.containsKey(chanId)) {
-                map.remove(chanId);
+                long msgId = map.remove(chanId);
                 Config.removeChannel(chanId);
                 Config.write();
+                e.getChannel().deleteMessageById(msgId).queue();
                 e.getChannel().sendMessage("No longer tracking here...").queue();
-                LOG.info("No longer tracking channel {} ({})", e.getChannel(), chanId);
+                LOG.info("No longer tracking channel {}", e.getChannel());
             } else {
                 map.put(chanId, 0L);
                 Config.addChannel(chanId);
                 Config.write();
-                LOG.info("Now tracking channel {} ({})", e.getChannel(), chanId);
+                LOG.info("Now tracking channel {}", e.getChannel());
             }
         }
         //TODO: handle other commands
@@ -119,10 +119,10 @@ public class Listener extends ListenerAdapter {
         if(Config.isKeepOnBottom() && Config.getChannelIds().contains(channel.getId())) {
             if(map.get(channel.getId()) == 0L)
                 return;
-            LOG.debug("Renewing message in tc {}", channel.getIdLong());
+            LOG.debug("Renewing message in tc {}", channel);
             map.compute(channel.getId(), (key, value) -> {
                 if(value != 0L)
-                    channel.deleteMessageById(value).queueAfter(1, TimeUnit.SECONDS);
+                    channel.deleteMessageById(value).queueAfter(Constants.UPDATE_INTERVAL, Constants.UPDATE_INTERVAL_UNIT);
                 return 0L;
             });
         }
@@ -142,7 +142,7 @@ public class Listener extends ListenerAdapter {
         });
         if(idsToRemove.size() > 0) {
             Config.write();
-            LOG.info("Left guild {} and removed {} tracking channels", e.getGuild().getName(), idsToRemove.size());
+            LOG.info("Left guild {} and removed {} tracking channels", e.getGuild(), idsToRemove.size());
         }
     }
 
@@ -155,7 +155,7 @@ public class Listener extends ListenerAdapter {
             map.remove(id);
             Config.removeChannel(id);
             Config.write();
-            LOG.info("Tracking channel {} ({}) was deleted and therefore is no longer tracked", tc.getName(), id);
+            LOG.info("Tracking channel {} was deleted and therefore is no longer tracked", tc);
         }
     }
 }
