@@ -116,13 +116,13 @@ public class Listener extends ListenerAdapter {
 
         //handle keepOnBottom
         TextChannel channel = e.getChannel();
-        if(Config.isKeepOnBottom() && Config.getChannelIds().contains(channel.getId())) {
+        if(Config.KEEP_ON_BOTTOM && Config.getChannelIds().contains(channel.getId())) {
             if(map.get(channel.getId()) == 0L)
                 return;
             LOG.debug("Renewing message in tc {}", channel);
             map.compute(channel.getId(), (key, value) -> {
                 if(value != 0L)
-                    channel.deleteMessageById(value).queueAfter(Constants.UPDATE_INTERVAL, Constants.UPDATE_INTERVAL_UNIT);
+                    channel.deleteMessageById(value).queueAfter(Config.UPDATE_INTERVAL, Config.UPDATE_UNIT);
                 return 0L;
             });
         }

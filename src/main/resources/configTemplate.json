@@ -2,5 +2,15 @@
   "botToken": "",
   "adminIds": [],
   "textChannelIds": [],
-  "keepOnBottom": true
+  "keepOnBottom": true,
+  "times": {
+    "update": {
+      "interval": 10,
+      "unit": "seconds"
+    },
+    "renew": {
+      "interval": 2,
+      "unit": "hours"
+    }
+  }
 }

@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import javax.security.auth.login.LoginException;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -29,12 +30,13 @@ public class Main {
     });
 
     static JDA JDA;
+    private static final int VALID_TILL = -30;
     private static Map<String, Long> channelMsgMap = new HashMap<>();
 
     //Starting up with 30mib of memory should be sufficient (-Xmx30M)
     public static void main(String[] args) {
         try {
-            new JDABuilder(AccountType.BOT).setToken(Config.getBotToken()).addEventListener(new Listener()).buildAsync();
+            new JDABuilder(AccountType.BOT).setToken(Config.BOT_TOKEN).addEventListener(new Listener()).buildAsync();
         } catch(LoginException | RateLimitedException e) {
             LOG.error("Error starting up bot", e);
         }
@@ -48,8 +50,9 @@ public class Main {
     static synchronized void setupExecutor() {
         if(setup)
             return;
-        long updateIntervalMs = TimeUnit.MILLISECONDS.convert(Constants.UPDATE_INTERVAL, Constants.UPDATE_INTERVAL_UNIT);
-        long initialDelayMs = updateIntervalMs - (System.currentTimeMillis() % updateIntervalMs);
+        long updateIntervalMs = TimeUnit.MILLISECONDS.convert(Config.UPDATE_INTERVAL, Config.UPDATE_UNIT);
+        //start with nice numbers... 500ms correction to notslip into next s frame
+        long initialDelayMs = updateIntervalMs - (System.currentTimeMillis() % updateIntervalMs) - 500;
         EXECUTOR.scheduleAtFixedRate(Main::update, initialDelayMs, updateIntervalMs, TimeUnit.MILLISECONDS);
         setup = true;
     }
@@ -64,8 +67,8 @@ public class Main {
     private static boolean isValid() {
         ZonedDateTime now = ZonedDateTime.now();
         return WarframeApi.getCurrentCycle() != null
-                && WarframeApi.getCurrentCycle().switchTime.isAfter(now)
-                && WarframeApi.getCurrentTrader().switchTime.isAfter(now);
+                && now.until(WarframeApi.getCurrentCycle().switchTime, ChronoUnit.SECONDS) >= VALID_TILL
+                && now.until(WarframeApi.getCurrentTrader().switchTime, ChronoUnit.SECONDS) >= VALID_TILL;
     }
 
     private static void printInfo() {
@@ -74,9 +77,9 @@ public class Main {
             return;
         channelMsgMap.forEach((key, value) -> {
             TextChannel tc = JDA.getTextChannelById(key);
-            if(value == 0L || (Constants.FORCED_RENEW_INTERVAL > 0 &&
-                    MiscUtil.getCreationTime(value).until(OffsetDateTime.now(), Constants.FORCED_RENEW_INTERVAL_UNIT)
-                            >= Constants.FORCED_RENEW_INTERVAL)) {
+            if(value == 0L || (Config.RENEW_INTERVAL > 0 &&
+                    MiscUtil.getCreationTime(value).until(OffsetDateTime.now(), Config.RENEW_UNIT)
+                            >= Config.RENEW_INTERVAL)) {
                 if(value != 0L) {
                     tc.deleteMessageById(value).queue();
                     LOG.debug("Forced renew in channel {}", tc);
