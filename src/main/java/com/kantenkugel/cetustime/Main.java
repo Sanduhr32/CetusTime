@@ -58,10 +58,15 @@ public class Main {
     }
 
     private static void update() {
-        if(!isValid()) {
-            WarframeApi.fetch();
+        try {
+            if(!isValid()) {
+                WarframeApi.fetch();
+            }
+            printInfo();
+        } catch(Throwable throwable) {
+            //otherwise they will just get eaten by executor, stopping scheduled task
+            throwable.printStackTrace();
         }
-        printInfo();
     }
 
     private static boolean isValid() {

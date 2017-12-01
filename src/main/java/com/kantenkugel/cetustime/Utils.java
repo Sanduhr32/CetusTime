@@ -3,12 +3,13 @@ package com.kantenkugel.cetustime;
 import net.dv8tion.jda.core.EmbedBuilder;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 
-import java.awt.*;
+import java.awt.Color;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 public class Utils {
     private static final EmbedBuilder EB = new EmbedBuilder();
@@ -33,8 +34,9 @@ public class Utils {
                 ), false);
         EB.addField(currentVoid.name, (currentVoid.active ? "geht in " : "kommt in ") + getDiffString(currentVoid.switchTime), false);
         if(currentVoid.active || ZonedDateTime.now().until(currentVoid.switchTime, ChronoUnit.DAYS) == 0) {
-            EB.addField(String.format("%s Relay", currentVoid.name), currentVoid.location, false);
-            //TODO: Add inventory once i know its json body from the api
+            EB.addField("Relay", currentVoid.location, false);
+            if(!currentVoid.inventory.isEmpty())
+                createInventory(currentVoid.inventory);
         }
         return EB.build();
     }
@@ -54,5 +56,18 @@ public class Utils {
             sb.append(mins).append("m ");
         sb.append(secs).append("s");
         return sb.toString();
+    }
+
+    private static void createInventory(List<WarframeApi.VoidTrader.Item> inventory) {
+        StringBuilder nameBuilder = new StringBuilder();
+        StringBuilder priceBuilder = new StringBuilder();
+        inventory.forEach(item -> {
+            nameBuilder.append(item.name).append('\n');
+            priceBuilder.append(String.format("`%-3dd`, `%,-7dcr`\n", item.ducatCost, item.creditCost));
+        });
+        nameBuilder.setLength(nameBuilder.length() - 1);
+        priceBuilder.setLength(priceBuilder.length() - 1);
+        EB.addField("Inventar", nameBuilder.toString(), true);
+        EB.addField("Preis", priceBuilder.toString(), true);
     }
 }
