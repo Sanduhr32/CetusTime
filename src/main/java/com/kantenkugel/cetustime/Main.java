@@ -30,7 +30,7 @@ public class Main {
     });
 
     static JDA JDA;
-    private static final int VALID_TILL = -30;
+    static final int VALID_TILL = -30;
     private static Map<String, Long> channelMsgMap = new HashMap<>();
 
     //Starting up with 30mib of memory should be sufficient (-Xmx30M)

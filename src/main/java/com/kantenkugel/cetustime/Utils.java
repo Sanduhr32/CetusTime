@@ -32,7 +32,7 @@ public class Utils {
                         currentCycle.switchTime.withZoneSameInstant(ZoneId.systemDefault())
                                 .format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM))
                 ), false);
-        EB.addField(currentVoid.name, (currentVoid.active ? "geht in " : "kommt in ") + getDiffString(currentVoid.switchTime), false);
+        EB.addField(currentVoid.name, (currentVoid.active ? "geht in " : "kommt in ") + getDiffString(currentVoid.switchTime, true), false);
         if(currentVoid.active || ZonedDateTime.now().until(currentVoid.switchTime, ChronoUnit.DAYS) == 0) {
             EB.addField("Relay", currentVoid.location, false);
             if(!currentVoid.inventory.isEmpty())
@@ -42,7 +42,15 @@ public class Utils {
     }
 
     public static String getDiffString(ZonedDateTime target) {
+        return getDiffString(target, false);
+    }
+
+    public static String getDiffString(ZonedDateTime target, boolean showUnknown) {
         int until = (int) ZonedDateTime.now().until(target, ChronoUnit.SECONDS);
+
+        if(until < Main.VALID_TILL && showUnknown)
+            return "?";
+
         int days = until / 86400;
         int hours = (until % 86400) / 3600;
         int mins = (until % 3600) / 60;
