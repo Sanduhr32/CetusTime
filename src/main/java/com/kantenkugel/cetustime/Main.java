@@ -82,7 +82,6 @@ public class Main {
 
     private static void printInfo() {
         MessageEmbed embed = Utils.getEmbed();
-        AtomicReference<String> oldContent = new AtomicReference<>("");
         if(embed == null)
             return;
         channelMsgMap.forEach((key, value) -> {
@@ -91,23 +90,12 @@ public class Main {
                     MiscUtil.getCreationTime(value).until(OffsetDateTime.now(), Config.RENEW_UNIT)
                             >= Config.RENEW_INTERVAL)) {
                 if(value != 0L) {
-                    tc.getMessageById(value).queue((msg) -> {
-                        oldContent.set(msg.getContentRaw());
-                        msg.delete().queue();
-                    }, (fail) -> {});
+                    tc.deleteMessageById(value).queue();
                     LOG.debug("Forced renew in channel {}", tc);
                 }
                 channelMsgMap.put(key, tc.sendMessage(embed).complete().getIdLong());
             } else {
-				WarframeApi.CetusCycle currentCycle = WarframeApi.getCurrentCycle();
-				MessageBuilder builder = new MessageBuilder().setEmbed(embed);
-				if (!currentCycle.isDay && oldContent.get().isEmpty()) {
-					tc.getGuild().getRolesByName("Eidolon Hunter", true).stream().findFirst().ifPresent(builder::append);
-					tc.sendMessage(builder.build()).queue();
-					tc.deleteMessageById(value).queue();
-				} else {
-                    tc.editMessageById(value, builder.setContent(null).build()).override(!oldContent.get().isEmpty()).queue();
-                }
+                tc.getMessageById(value).queue((msg) -> cycleInfo(embed, tc, msg));
             }
         });
         LOG.trace("Current memory stats (in kib): Total: {}, Free: {}, Usage: {}",
@@ -115,5 +103,19 @@ public class Main {
                 JDALogger.getLazyString(() -> Long.toString(Runtime.getRuntime().freeMemory()/1024)),
                 JDALogger.getLazyString(() -> Long.toString((Runtime.getRuntime().totalMemory()-Runtime.getRuntime().freeMemory())/1024))
         );
+    }
+
+    private static void cycleInfo(MessageEmbed embed, TextChannel tc, Message msg) {
+        long value = msg.getIdLong();
+        String oldContent = msg.getContentRaw();
+        WarframeApi.CetusCycle currentCycle = WarframeApi.getCurrentCycle();
+        MessageBuilder builder = new MessageBuilder().setEmbed(embed);
+        if (!currentCycle.isDay && oldContent.isEmpty()) {
+            tc.getGuild().getRolesByName("Eidolon Hunter", true).stream().findFirst().ifPresent(builder::append);
+            tc.sendMessage(builder.build()).queue();
+            tc.deleteMessageById(value).queue();
+        } else {
+            tc.editMessageById(value, builder.setContent("").build()).override(true).queue();
+        }
     }
 }
