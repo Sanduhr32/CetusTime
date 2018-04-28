@@ -82,7 +82,7 @@ public class Listener extends ListenerAdapter {
 
     @Override
     public void onPrivateMessageReceived(PrivateMessageReceivedEvent e) {
-        if(Config.getAdminIds().contains(e.getAuthor().getId()) && e.getMessage().getContent().equals("shutdown")) {
+        if(Config.getAdminIds().contains(e.getAuthor().getId()) && e.getMessage().getContentDisplay().equals("shutdown")) {
             LOG.info("Admin {} issued shutdown... ", e.getAuthor());
             e.getJDA().shutdown();
         }
@@ -96,7 +96,7 @@ public class Listener extends ListenerAdapter {
         Map<String, Long> map = Main.getMap();
 
         //handle commands
-        if(e.getMessage().getRawContent().equals(e.getJDA().getSelfUser().getAsMention() + " track")) {
+        if(e.getMessage().getContentRaw().equals(e.getJDA().getSelfUser().getAsMention() + " track")) {
             String chanId = e.getChannel().getId();
             if(map.containsKey(chanId)) {
                 long msgId = map.remove(chanId);

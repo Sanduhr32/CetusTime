@@ -3,6 +3,8 @@ package com.kantenkugel.cetustime;
 import net.dv8tion.jda.core.AccountType;
 import net.dv8tion.jda.core.JDA;
 import net.dv8tion.jda.core.JDABuilder;
+import net.dv8tion.jda.core.MessageBuilder;
+import net.dv8tion.jda.core.entities.Message;
 import net.dv8tion.jda.core.entities.MessageEmbed;
 import net.dv8tion.jda.core.entities.TextChannel;
 import net.dv8tion.jda.core.exceptions.RateLimitedException;
@@ -12,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.security.auth.login.LoginException;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
@@ -19,6 +22,7 @@ import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class Main {
     public static final Logger LOG = LoggerFactory.getLogger(Main.class);
@@ -37,7 +41,7 @@ public class Main {
     public static void main(String[] args) {
         try {
             new JDABuilder(AccountType.BOT).setToken(Config.BOT_TOKEN).addEventListener(new Listener()).buildAsync();
-        } catch(LoginException | RateLimitedException e) {
+        } catch(LoginException e) {
             LOG.error("Error starting up bot", e);
         }
     }
@@ -78,6 +82,7 @@ public class Main {
 
     private static void printInfo() {
         MessageEmbed embed = Utils.getEmbed();
+        AtomicReference<String> oldContent = new AtomicReference<>("");
         if(embed == null)
             return;
         channelMsgMap.forEach((key, value) -> {
@@ -86,12 +91,23 @@ public class Main {
                     MiscUtil.getCreationTime(value).until(OffsetDateTime.now(), Config.RENEW_UNIT)
                             >= Config.RENEW_INTERVAL)) {
                 if(value != 0L) {
-                    tc.deleteMessageById(value).queue();
+                    tc.getMessageById(value).queue((msg) -> {
+                        oldContent.set(msg.getContentRaw());
+                        msg.delete().queue();
+                    }, (fail) -> {});
                     LOG.debug("Forced renew in channel {}", tc);
                 }
                 channelMsgMap.put(key, tc.sendMessage(embed).complete().getIdLong());
             } else {
-                tc.editMessageById(value, embed).queue();
+				WarframeApi.CetusCycle currentCycle = WarframeApi.getCurrentCycle();
+				MessageBuilder builder = new MessageBuilder().setEmbed(embed);
+				if (!currentCycle.isDay && oldContent.get().isEmpty()) {
+					tc.getGuild().getRolesByName("Eidolon Hunter", true).stream().findFirst().ifPresent(builder::append);
+					tc.sendMessage(builder.build()).queue();
+					tc.deleteMessageById(value).queue();
+				} else {
+                    tc.editMessageById(value, builder.setContent(null).build()).override(!oldContent.get().isEmpty()).queue();
+                }
             }
         });
         LOG.trace("Current memory stats (in kib): Total: {}, Free: {}, Usage: {}",

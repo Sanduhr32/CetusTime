@@ -5,6 +5,7 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
@@ -33,7 +34,7 @@ public class WarframeApi {
                         return;
                     JSONObject json = new JSONObject(body.string());
                     JSONObject cetusCycle = json.getJSONObject("cetusCycle");
-                    currentCycle = new CetusCycle(cetusCycle.getBoolean("isDay"), ZonedDateTime.parse(cetusCycle.getString("expiry")));
+                    currentCycle = new CetusCycle(cetusCycle.getBoolean("isDay"), (cetusCycle.get("expiry") == null) ? currentCycle.switchTime : ZonedDateTime.parse(cetusCycle.getString("expiry")));
                     JSONObject voidTrader = json.getJSONObject("voidTrader");
                     boolean voidActive = voidTrader.getBoolean("active");
                     ZonedDateTime voidSwitch = ZonedDateTime.parse(voidActive ? voidTrader.getString("expiry") : voidTrader.getString("activation"));
@@ -91,6 +92,7 @@ public class WarframeApi {
         }
 
         private static List<Item> getInventory(JSONArray jsonArray) {
+            @SuppressWarnings("unchecked")
             List<Item> inv = jsonArray.toList().stream()
                     .map(o -> Item.from((HashMap<String, Object>) o))
                     .sorted(Comparator.comparing(item -> item.name))

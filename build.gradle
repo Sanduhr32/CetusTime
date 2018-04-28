@@ -18,7 +18,7 @@ repositories {
 
 dependencies {
     //JDA
-    compile 'net.dv8tion:JDA:3.3.1_305'
+    compile 'net.dv8tion:JDA:3.6.0_359'
 
     //Utils (would be included in JDA but this way its more obvious + safe)
     compile 'org.json:json:20160810'
