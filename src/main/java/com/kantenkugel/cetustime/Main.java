@@ -112,7 +112,7 @@ public class Main {
         MessageBuilder builder = new MessageBuilder().setEmbed(embed);
         if (!currentCycle.isDay && oldContent.isEmpty()) {
             tc.getGuild().getRolesByName("Eidolon Hunter", true).stream().findFirst().ifPresent(builder::append);
-            tc.sendMessage(builder.build()).queue();
+            channelMsgMap.put(tc.getId(), tc.sendMessage(builder.build()).complete().getIdLong());
             tc.deleteMessageById(value).queue();
         } else {
             tc.editMessageById(value, builder.setContent("").build()).override(true).queue();
